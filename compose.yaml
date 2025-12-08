@@ -1,0 +1,10 @@
+services:
+  dev:
+    build: .
+    volumes:
+      - .:/app
+      # Exclude the virtual environment from the volume mount to avoid OS conflicts
+      # if the host is not Linux.
+      - /app/.venv
+    command: tail -f /dev/null
+
