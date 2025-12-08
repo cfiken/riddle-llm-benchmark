@@ -1,11 +1,13 @@
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
-from riddle_benchmark.runner import BenchmarkRunner
 from riddle_benchmark.core import get_assets_path
+from riddle_benchmark.runner import BenchmarkRunner
 
-def main():
+
+def main() -> None:
     # .env ファイルをロード
     load_dotenv()
 
@@ -16,22 +18,19 @@ def main():
         return
 
     print("ベンチマークを開始します...")
-    
+
     # モデル名は gpt-4o を指定
     # data_dir は assets ディレクトリを指定 (core.pyのヘルパーを利用)
     assets_dir = get_assets_path()
-    
-    runner = BenchmarkRunner(
-        model_name="gpt-4o",
-        data_dir=assets_dir
-    )
-    
+
+    runner = BenchmarkRunner(model_name="gpt-4o", data_dir=assets_dir)
+
     try:
         results = runner.run()
         output_path = Path("benchmark_results.json")
         runner.save_report(output_path)
         print(f"\n完了しました。結果は {output_path} に保存されました。")
-        
+
         # 簡易サマリー表示
         summary = results["summary"]
         print("\n--- 結果サマリー ---")
@@ -41,6 +40,7 @@ def main():
 
     except Exception as e:
         print(f"\n実行中にエラーが発生しました: {e}")
+
 
 if __name__ == "__main__":
     main()

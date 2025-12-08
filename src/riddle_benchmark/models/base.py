@@ -1,15 +1,18 @@
-from typing import Any, List, Dict
 import base64
 from pathlib import Path
+from typing import Any
+
 import litellm
+
 from riddle_benchmark.dataset.schema import Riddle
+
 
 class Model:
     """
     A unified interface for LLMs using LiteLLM.
     """
 
-    def __init__(self, model_name: str, **kwargs):
+    def __init__(self, model_name: str, **kwargs: Any):
         """
         Initialize the model wrapper.
 
@@ -32,15 +35,11 @@ class Model:
         """
         messages = self._construct_messages(riddle)
 
-        response = litellm.completion(
-            model=self.model_name,
-            messages=messages,
-            **self.kwargs
-        )
+        response = litellm.completion(model=self.model_name, messages=messages, **self.kwargs)
 
-        return response.choices[0].message.content
+        return str(response.choices[0].message.content)
 
-    def _construct_messages(self, riddle: Riddle) -> List[Dict[str, Any]]:
+    def _construct_messages(self, riddle: Riddle) -> list[dict[str, Any]]:
         """
         Construct the messages payload for LiteLLM.
 
@@ -54,30 +53,26 @@ class Model:
         question_text = riddle.question if riddle.question else "What does this image represent?"
 
         # Construct the user content with both text and image
-        content = [
+        content: list[dict[str, Any]] = [
             {
                 "type": "text",
-                "text": f"Question: {question_text}\n\nPlease provide only the answer word, nothing else."
+                "text": f"Question: {question_text}\n\nPlease provide only the answer word, nothing else.",
             },
             {
                 "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/jpeg;base64,{self._encode_image(riddle.image_path)}"
-                }
-            }
+                "image_url": {"url": f"data:image/jpeg;base64,{self._encode_image(riddle.image_path)}"},
+            },
         ]
 
         # Add hint if available
         if riddle.hint:
             content[0]["text"] += f"\nHint: {riddle.hint}"
 
-        return [
-            {"role": "user", "content": content}
-        ]
+        return [{"role": "user", "content": content}]
 
     def _encode_image(self, image_path: Path) -> str:
         """
         Encode an image file to base64 string.
         """
         with open(image_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
+            return base64.b64encode(image_file.read()).decode("utf-8")

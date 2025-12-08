@@ -1,8 +1,10 @@
 import json
+from collections.abc import Generator
 from pathlib import Path
-from typing import List, Generator
+
+from riddle_benchmark.core import get_assets_path
 from riddle_benchmark.dataset.schema import Riddle
-from riddle_benchmark.core import get_image_assets_path, get_assets_path
+
 
 class DataLoader:
     """
@@ -25,7 +27,7 @@ class DataLoader:
         self.metadata_path = self.data_dir / "metadata.jsonl"
         self.images_dir = self.data_dir / "images"
 
-    def load(self) -> List[Riddle]:
+    def load(self) -> list[Riddle]:
         """
         Load all riddles from the dataset.
 
@@ -34,7 +36,7 @@ class DataLoader:
         """
         return list(self.iter_load())
 
-    def iter_load(self) -> Generator[Riddle, None, None]:
+    def iter_load(self) -> Generator[Riddle]:
         """
         Iteratively load riddles from the dataset.
 
@@ -48,7 +50,7 @@ class DataLoader:
         if not self.metadata_path.exists():
             raise FileNotFoundError(f"Metadata file not found at {self.metadata_path}")
 
-        with open(self.metadata_path, "r", encoding="utf-8") as f:
+        with open(self.metadata_path, encoding="utf-8") as f:
             for line in f:
                 if not line.strip():
                     continue
@@ -59,12 +61,12 @@ class DataLoader:
                 # "file_name": "images/riddle_001.png" -> we need full path
                 image_rel_path = data.get("file_name")
                 if not image_rel_path:
-                     raise ValueError(f"Missing 'file_name' in metadata: {data}")
+                    raise ValueError(f"Missing 'file_name' in metadata: {data}")
 
                 full_image_path = self.data_dir / image_rel_path
 
                 if not full_image_path.exists():
-                     raise ValueError(f"Image file not found: {full_image_path}")
+                    raise ValueError(f"Image file not found: {full_image_path}")
 
                 # Map JSON fields to Riddle schema
                 # Expecting metadata to contain: id, question, answers, etc.
@@ -72,7 +74,7 @@ class DataLoader:
                 yield Riddle(
                     id=data["id"],
                     image_path=full_image_path,
-                    acceptable_answers=data["answers"], # Mapping 'answers' to 'acceptable_answers'
+                    acceptable_answers=data["answers"],  # Mapping 'answers' to 'acceptable_answers'
                     question=data.get("question"),
-                    hint=data.get("hint")
+                    hint=data.get("hint"),
                 )

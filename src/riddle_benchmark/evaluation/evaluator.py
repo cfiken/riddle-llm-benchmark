@@ -1,5 +1,7 @@
 import unicodedata
+
 from riddle_benchmark.dataset.schema import Riddle
+
 
 class Evaluator:
     """

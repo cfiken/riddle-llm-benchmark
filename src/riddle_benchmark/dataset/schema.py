@@ -1,6 +1,7 @@
-from typing import List, Optional
 from pathlib import Path
+
 from pydantic import BaseModel
+
 
 class Riddle(BaseModel):
     """
@@ -13,8 +14,9 @@ class Riddle(BaseModel):
         question: The riddle question (optional)
         hint: Optional hint for the riddle
     """
+
     id: str
     image_path: Path
-    acceptable_answers: List[str]
-    question: Optional[str] = None
-    hint: Optional[str] = None
+    acceptable_answers: list[str]
+    question: str | None = None
+    hint: str | None = None
