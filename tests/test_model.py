@@ -1,0 +1,104 @@
+import pytest
+from unittest.mock import patch, MagicMock
+from pathlib import Path
+from riddle_benchmark.models.base import Model
+from riddle_benchmark.dataset.schema import Riddle
+
+@pytest.fixture
+def mock_riddle():
+    return Riddle(
+        id="test_001",
+        image_path=Path("test_image.jpg"),
+        question="What is this?",
+        acceptable_answers=["test"],
+        hint="It's a test."
+    )
+
+@patch("riddle_benchmark.models.base.litellm.completion")
+@patch("builtins.open", new_callable=MagicMock)
+def test_model_solve(mock_open, mock_completion, mock_riddle):
+    # Setup mock for file opening (for image encoding)
+    mock_file = MagicMock()
+    mock_file.read.return_value = b"fake_image_content"
+    mock_open.return_value.__enter__.return_value = mock_file
+
+    # Setup mock for litellm response
+    mock_response = MagicMock()
+    mock_response.choices = [MagicMock(message=MagicMock(content="test answer"))]
+    mock_completion.return_value = mock_response
+
+    # Initialize model
+    model = Model(model_name="gpt-4o", temperature=0.5)
+
+    # Run solve
+    answer = model.solve(mock_riddle)
+
+    # Verify response
+    assert answer == "test answer"
+
+    # Verify litellm.completion was called correctly
+    mock_completion.assert_called_once()
+    call_args = mock_completion.call_args
+    assert call_args.kwargs["model"] == "gpt-4o"
+    assert call_args.kwargs["temperature"] == 0.5
+
+    messages = call_args.kwargs["messages"]
+    assert len(messages) == 1
+    assert messages[0]["role"] == "user"
+
+    content = messages[0]["content"]
+    assert len(content) == 2
+    assert content[0]["type"] == "text"
+    assert "Question: What is this?" in content[0]["text"]
+    assert "Hint: It's a test." in content[0]["text"]
+
+    assert content[1]["type"] == "image_url"
+    # base64 encoded "fake_image_content" is "ZmFrZV9pbWFnZV9jb250ZW50"
+    assert content[1]["image_url"]["url"] == "data:image/jpeg;base64,ZmFrZV9pbWFnZV9jb250ZW50"
+
+@patch("riddle_benchmark.models.base.litellm.completion")
+@patch("builtins.open", new_callable=MagicMock)
+def test_model_solve_no_hint(mock_open, mock_completion, mock_riddle):
+    # Modify riddle to have no hint
+    mock_riddle.hint = None
+
+    # Setup mocks
+    mock_file = MagicMock()
+    mock_file.read.return_value = b"fake_image_content"
+    mock_open.return_value.__enter__.return_value = mock_file
+
+    mock_response = MagicMock()
+    mock_response.choices = [MagicMock(message=MagicMock(content="answer"))]
+    mock_completion.return_value = mock_response
+
+    model = Model(model_name="gpt-4o")
+    model.solve(mock_riddle)
+
+    # Verify messages structure when no hint is present
+    messages = mock_completion.call_args.kwargs["messages"]
+    content = messages[0]["content"]
+    assert "Hint:" not in content[0]["text"]
+
+@patch("riddle_benchmark.models.base.litellm.completion")
+@patch("builtins.open", new_callable=MagicMock)
+def test_model_solve_no_question(mock_open, mock_completion, mock_riddle):
+    # Modify riddle to have no question
+    mock_riddle.question = None
+
+    # Setup mocks
+    mock_file = MagicMock()
+    mock_file.read.return_value = b"fake_image_content"
+    mock_open.return_value.__enter__.return_value = mock_file
+
+    mock_response = MagicMock()
+    mock_response.choices = [MagicMock(message=MagicMock(content="answer"))]
+    mock_completion.return_value = mock_response
+
+    model = Model(model_name="gpt-4o")
+    model.solve(mock_riddle)
+
+    # Verify messages structure when no question is present
+    messages = mock_completion.call_args.kwargs["messages"]
+    content = messages[0]["content"]
+    # Should use default prompt
+    assert "Question: What does this image represent?" in content[0]["text"]
