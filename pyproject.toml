@@ -26,5 +26,41 @@ packages = ["src/riddle_benchmark"]
 
 [dependency-groups]
 dev = [
+    "mypy>=1.19.0",
+    "pre-commit>=4.5.0",
     "pytest>=9.0.2",
+    "ruff>=0.14.8",
 ]
+
+# --- Tool Configurations ---
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+ignore_missing_imports = true
+warn_return_any = true
+warn_unused_configs = true
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
