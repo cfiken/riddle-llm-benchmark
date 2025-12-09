@@ -1,5 +1,6 @@
 import argparse
 import os
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -32,7 +33,8 @@ def main() -> None:
 
     try:
         results = runner.run()
-        output_path = Path("benchmark_results.json")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = Path(f"benchmark_results_{timestamp}.json")
         runner.save_report(output_path)
         print(f"\n完了しました。結果は {output_path} に保存されました。")
 
