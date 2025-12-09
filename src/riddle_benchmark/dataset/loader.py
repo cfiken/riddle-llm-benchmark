@@ -2,8 +2,8 @@ import json
 from collections.abc import Generator
 from pathlib import Path
 
-from riddle_benchmark.core import get_assets_path
 from riddle_benchmark.dataset.schema import Riddle
+from riddle_benchmark.utils import get_assets_path
 
 
 class DataLoader:

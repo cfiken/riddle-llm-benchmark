@@ -1,12 +1,14 @@
 import argparse
-import os
+import asyncio
 from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
 
-from riddle_benchmark.core import get_assets_path, get_prompt_assets_path
 from riddle_benchmark.runner import BenchmarkRunner
+from riddle_benchmark.utils import get_assets_path, get_logger, get_prompt_assets_path
+
+logger = get_logger(__name__)
 
 
 def main() -> None:
@@ -24,13 +26,8 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        print("エラー: 環境変数 'OPENAI_API_KEY' が設定されていません。")
-        print(".env ファイルに OPENAI_API_KEY を設定するか、環境変数をエクスポートしてください。")
-        return
-
-    print(f"ベンチマークを開始します... (Model: {args.model}, Reasoning: {args.reasoning}, Prompt: {args.prompt})")
+    logger.info("ベンチマークを開始します...")
+    logger.info(f"(Model: {args.model}, Reasoning: {args.reasoning}, Prompt: {args.prompt})")
 
     # data_dir は assets ディレクトリを指定 (core.pyのヘルパーを利用)
     assets_dir = get_assets_path()
@@ -42,7 +39,7 @@ def main() -> None:
         if prompt_path.exists():
             prompt = prompt_path.read_text(encoding="utf-8")
         else:
-            print(f"警告: プロンプトファイルが見つかりません: {prompt_path}")
+            logger.warning(f"プロンプトファイルが見つかりません: {prompt_path}")
 
     runner = BenchmarkRunner(
         model_name=args.model,
@@ -52,21 +49,23 @@ def main() -> None:
     )
 
     try:
-        results = runner.run()
+        results = asyncio.run(runner.run())
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = Path(f"benchmark_results_{timestamp}.json")
+        # Remove provider prefix if present (e.g. "gemini/gemini-1.5-pro" -> "gemini-1.5-pro")
+        model_name_for_file = args.model.split("/")[-1]
+        output_path = Path(f"results_{model_name_for_file}_{timestamp}.json")
         runner.save_report(output_path)
-        print(f"\n完了しました。結果は {output_path} に保存されました。")
+        logger.info(f"完了しました。結果は {output_path} に保存されました。")
 
         # 簡易サマリー表示
         summary = results["summary"]
-        print("\n--- 結果サマリー ---")
-        print(f"モデル: {summary['model']}")
-        print(f"正解数: {summary['correct_answers']} / {summary['total_questions']}")
-        print(f"正答率: {summary['accuracy']:.2%}")
+        logger.info("--- 結果サマリー ---")
+        logger.info(f"モデル: {summary['model']}")
+        logger.info(f"正解数: {summary['correct_answers']} / {summary['total_questions']}")
+        logger.info(f"正答率: {summary['accuracy']:.2%}")
 
     except Exception as e:
-        print(f"\n実行中にエラーが発生しました: {e}")
+        logger.error(f"実行中にエラーが発生しました: {e}", exc_info=True)
 
 
 if __name__ == "__main__":

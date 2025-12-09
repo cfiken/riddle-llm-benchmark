@@ -1,12 +1,4 @@
-from riddle_benchmark.core import get_assets_path, get_image_assets_path, get_prompt_assets_path, hello
-
-
-def test_hello_default():
-    assert hello() == "Hello, World!"
-
-
-def test_hello_name():
-    assert hello("Python") == "Hello, Python!"
+from riddle_benchmark.utils import get_assets_path, get_image_assets_path, get_prompt_assets_path
 
 
 def test_assets_paths():

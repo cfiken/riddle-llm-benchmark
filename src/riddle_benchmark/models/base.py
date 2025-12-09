@@ -26,7 +26,7 @@ class Model:
         self.model_name = model_name
         self.kwargs = kwargs
 
-    def solve(self, riddle: Riddle, response_schema: type[T], prompt: str | None = None) -> T:
+    async def solve(self, riddle: Riddle, response_schema: type[T], prompt: str | None = None) -> T:
         """
         Solve a riddle using the LLM.
 
@@ -40,7 +40,7 @@ class Model:
         """
         messages = self._construct_messages(riddle, prompt)
 
-        response = litellm.completion(
+        response = await litellm.acompletion(
             model=self.model_name,
             messages=messages,
             response_format=response_schema,

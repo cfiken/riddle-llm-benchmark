@@ -20,14 +20,21 @@ def mock_riddles():
 @patch("riddle_benchmark.runner.DataLoader")
 @patch("riddle_benchmark.runner.Model")
 @patch("riddle_benchmark.runner.Evaluator")
-def test_runner_run(mock_evaluator, mock_model_class, mock_loader_class, mock_riddles):
+@pytest.mark.asyncio
+async def test_runner_run(mock_evaluator, mock_model_class, mock_loader_class, mock_riddles):
     # Setup mocks
     mock_loader = mock_loader_class.return_value
     mock_loader.load.return_value = mock_riddles
 
     mock_model = mock_model_class.return_value
     # First riddle correct, second incorrect
-    mock_model.solve.side_effect = [SimpleResponse(answer="a1"), SimpleResponse(answer="wrong")]
+    responses = [SimpleResponse(answer="a1"), SimpleResponse(answer="wrong")]
+
+    async def mock_solve(*args, **kwargs):
+        return responses.pop(0) if responses else SimpleResponse(answer="wrong")
+
+    mock_model.solve = mock_solve
+    mock_model.kwargs = {"temperature": 0.7}  # Mock kwargs for summary
 
     mock_evaluator.evaluate.side_effect = [True, False]
     mock_evaluator.normalize.side_effect = lambda x: x  # Identity for test
@@ -36,7 +43,7 @@ def test_runner_run(mock_evaluator, mock_model_class, mock_loader_class, mock_ri
     runner = BenchmarkRunner(model_name="test-model", temperature=0.7, prompt="SysPrompt")
 
     # Run benchmark
-    results = runner.run()
+    results = await runner.run()
 
     # Verify model initialization
     mock_model_class.assert_called_with("test-model", temperature=0.7)
@@ -62,16 +69,22 @@ def test_runner_run(mock_evaluator, mock_model_class, mock_loader_class, mock_ri
 
 @patch("riddle_benchmark.runner.DataLoader")
 @patch("riddle_benchmark.runner.Model")
-def test_runner_error_handling(mock_model_class, mock_loader_class, mock_riddles):
+@pytest.mark.asyncio
+async def test_runner_error_handling(mock_model_class, mock_loader_class, mock_riddles):
     # Setup mocks
     mock_loader = mock_loader_class.return_value
     mock_loader.load.return_value = [mock_riddles[0]]
 
     mock_model = mock_model_class.return_value
-    mock_model.solve.side_effect = Exception("API Error")
+
+    async def mock_solve_error(*args, **kwargs):
+        raise Exception("API Error")
+
+    mock_model.solve = mock_solve_error
+    mock_model.kwargs = {}
 
     runner = BenchmarkRunner(model_name="test-model")
-    results = runner.run()
+    results = await runner.run()
 
     details = results["details"]
     assert len(details) == 1

@@ -20,9 +20,10 @@ def mock_riddle():
     )
 
 
-@patch("riddle_benchmark.models.base.litellm.completion")
+@patch("riddle_benchmark.models.base.litellm.acompletion")
 @patch("builtins.open", new_callable=MagicMock)
-def test_model_solve(mock_open, mock_completion, mock_riddle):
+@pytest.mark.asyncio
+async def test_model_solve(mock_open, mock_completion, mock_riddle):
     # Setup mock for file opening (for image encoding)
     mock_file = MagicMock()
     mock_file.read.return_value = b"fake_image_content"
@@ -39,13 +40,13 @@ def test_model_solve(mock_open, mock_completion, mock_riddle):
     model = Model(model_name="gpt-4o", temperature=0.5)
 
     # Run solve
-    result = model.solve(mock_riddle, SimpleResponse)
+    result = await model.solve(mock_riddle, SimpleResponse)
 
     # Verify response
     assert isinstance(result, SimpleResponse)
     assert result.answer == "test answer"
 
-    # Verify litellm.completion was called correctly
+    # Verify litellm.acompletion was called correctly
     mock_completion.assert_called_once()
     call_args = mock_completion.call_args
     assert call_args.kwargs["model"] == "gpt-4o"
@@ -68,9 +69,10 @@ def test_model_solve(mock_open, mock_completion, mock_riddle):
     assert content[1]["image_url"]["url"] == "data:image/jpeg;base64,ZmFrZV9pbWFnZV9jb250ZW50"
 
 
-@patch("riddle_benchmark.models.base.litellm.completion")
+@patch("riddle_benchmark.models.base.litellm.acompletion")
 @patch("builtins.open", new_callable=MagicMock)
-def test_model_solve_with_prompt(mock_open, mock_completion, mock_riddle):
+@pytest.mark.asyncio
+async def test_model_solve_with_prompt(mock_open, mock_completion, mock_riddle):
     # Setup mocks
     mock_file = MagicMock()
     mock_file.read.return_value = b"fake_image_content"
@@ -86,7 +88,7 @@ def test_model_solve_with_prompt(mock_open, mock_completion, mock_riddle):
     model = Model(model_name="gpt-4o")
 
     # Run solve
-    model.solve(mock_riddle, SimpleResponse, prompt=prompt)
+    await model.solve(mock_riddle, SimpleResponse, prompt=prompt)
 
     # Verify messages structure
     messages = mock_completion.call_args.kwargs["messages"]
@@ -97,9 +99,10 @@ def test_model_solve_with_prompt(mock_open, mock_completion, mock_riddle):
     assert "Question:" in content[0]["text"]
 
 
-@patch("riddle_benchmark.models.base.litellm.completion")
+@patch("riddle_benchmark.models.base.litellm.acompletion")
 @patch("builtins.open", new_callable=MagicMock)
-def test_model_solve_no_hint(mock_open, mock_completion, mock_riddle):
+@pytest.mark.asyncio
+async def test_model_solve_no_hint(mock_open, mock_completion, mock_riddle):
     # Modify riddle to have no hint
     mock_riddle.hint = None
 
@@ -114,7 +117,7 @@ def test_model_solve_no_hint(mock_open, mock_completion, mock_riddle):
     mock_completion.return_value = mock_response
 
     model = Model(model_name="gpt-4o")
-    model.solve(mock_riddle, SimpleResponse)
+    await model.solve(mock_riddle, SimpleResponse)
 
     # Verify messages structure when no hint is present
     messages = mock_completion.call_args.kwargs["messages"]
@@ -122,9 +125,10 @@ def test_model_solve_no_hint(mock_open, mock_completion, mock_riddle):
     assert "Hint:" not in content[0]["text"]
 
 
-@patch("riddle_benchmark.models.base.litellm.completion")
+@patch("riddle_benchmark.models.base.litellm.acompletion")
 @patch("builtins.open", new_callable=MagicMock)
-def test_model_solve_no_question(mock_open, mock_completion, mock_riddle):
+@pytest.mark.asyncio
+async def test_model_solve_no_question(mock_open, mock_completion, mock_riddle):
     # Modify riddle to have no question
     mock_riddle.question = None
 
@@ -139,7 +143,7 @@ def test_model_solve_no_question(mock_open, mock_completion, mock_riddle):
     mock_completion.return_value = mock_response
 
     model = Model(model_name="gpt-4o")
-    model.solve(mock_riddle, SimpleResponse)
+    await model.solve(mock_riddle, SimpleResponse)
 
     # Verify messages structure when no question is present
     messages = mock_completion.call_args.kwargs["messages"]
