@@ -1,26 +1,21 @@
-import pytest
 import json
-from unittest.mock import MagicMock, patch
 from pathlib import Path
-from riddle_benchmark.runner import BenchmarkRunner
+from unittest.mock import patch
+
+import pytest
+
 from riddle_benchmark.dataset.schema import Riddle
+from riddle_benchmark.models.schemas import SimpleResponse
+from riddle_benchmark.runner import BenchmarkRunner
+
 
 @pytest.fixture
 def mock_riddles():
     return [
-        Riddle(
-            id="1",
-            image_path=Path("img1.png"),
-            question="q1",
-            acceptable_answers=["a1"]
-        ),
-        Riddle(
-            id="2",
-            image_path=Path("img2.png"),
-            question="q2",
-            acceptable_answers=["a2"]
-        )
+        Riddle(id="1", image_path=Path("img1.png"), question="q1", acceptable_answers=["a1"]),
+        Riddle(id="2", image_path=Path("img2.png"), question="q2", acceptable_answers=["a2"]),
     ]
+
 
 @patch("riddle_benchmark.runner.DataLoader")
 @patch("riddle_benchmark.runner.Model")
@@ -32,10 +27,10 @@ def test_runner_run(mock_evaluator, mock_model_class, mock_loader_class, mock_ri
 
     mock_model = mock_model_class.return_value
     # First riddle correct, second incorrect
-    mock_model.solve.side_effect = ["a1", "wrong"]
+    mock_model.solve.side_effect = [SimpleResponse(answer="a1"), SimpleResponse(answer="wrong")]
 
     mock_evaluator.evaluate.side_effect = [True, False]
-    mock_evaluator.normalize.side_effect = lambda x: x # Identity for test
+    mock_evaluator.normalize.side_effect = lambda x: x  # Identity for test
 
     # Initialize runner
     runner = BenchmarkRunner(model_name="test-model", temperature=0.7)
@@ -64,6 +59,7 @@ def test_runner_run(mock_evaluator, mock_model_class, mock_loader_class, mock_ri
     assert details[1]["riddle_id"] == "2"
     # difficulty/category checks removed
 
+
 @patch("riddle_benchmark.runner.DataLoader")
 @patch("riddle_benchmark.runner.Model")
 def test_runner_error_handling(mock_model_class, mock_loader_class, mock_riddles):
@@ -87,6 +83,7 @@ def test_runner_error_handling(mock_model_class, mock_loader_class, mock_riddles
     assert summary["correct_answers"] == 0
     assert summary["accuracy"] == 0.0
 
+
 def test_save_report(tmp_path):
     runner = BenchmarkRunner(model_name="test")
     # Manually populate results/summary to test save
@@ -97,7 +94,7 @@ def test_save_report(tmp_path):
     runner.save_report(output_path)
 
     assert output_path.exists()
-    with open(output_path, "r") as f:
+    with open(output_path) as f:
         data = json.load(f)
         assert data["summary"] == {"test": "summary"}
         assert data["details"] == [{"test": "result"}]

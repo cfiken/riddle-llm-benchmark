@@ -8,6 +8,7 @@ from tqdm import tqdm
 from riddle_benchmark.dataset.loader import DataLoader
 from riddle_benchmark.evaluation.evaluator import Evaluator
 from riddle_benchmark.models.base import Model
+from riddle_benchmark.models.schemas import ReasoningResponse, SimpleResponse
 
 
 class BenchmarkRunner:
@@ -15,16 +16,24 @@ class BenchmarkRunner:
     Runner for the Riddle Benchmark.
     """
 
-    def __init__(self, model_name: str, data_dir: Path | None = None, **model_kwargs: Any):
+    def __init__(
+        self,
+        model_name: str,
+        data_dir: Path | None = None,
+        use_reasoning: bool = False,
+        **model_kwargs: Any,
+    ):
         """
         Initialize the benchmark runner.
 
         Args:
             model_name: Name of the model to benchmark.
             data_dir: Path to the dataset directory.
+            use_reasoning: Whether to ask the model for reasoning.
             **model_kwargs: Additional arguments for the model.
         """
         self.model_name = model_name
+        self.use_reasoning = use_reasoning
         self.model = Model(model_name, **model_kwargs)
         self.loader = DataLoader(data_dir)
         self.results: list[dict[str, Any]] = []
@@ -44,10 +53,17 @@ class BenchmarkRunner:
         print(f"Starting benchmark for model: {self.model_name}")
         print(f"Total riddles: {total_count}")
 
+        schema: type[ReasoningResponse] | type[SimpleResponse] = (
+            ReasoningResponse if self.use_reasoning else SimpleResponse
+        )
+
         for riddle in tqdm(riddles, desc="Solving riddles"):
             try:
                 # Solve
-                raw_prediction = self.model.solve(riddle)
+                prediction_obj = self.model.solve(riddle, response_schema=schema)
+
+                raw_prediction = prediction_obj.answer
+                reasoning = getattr(prediction_obj, "reasoning", None)
 
                 # Evaluate
                 is_correct = Evaluator.evaluate(raw_prediction, riddle)
@@ -61,6 +77,7 @@ class BenchmarkRunner:
                         "riddle_id": riddle.id,
                         "question": riddle.question,
                         "prediction": raw_prediction,
+                        "reasoning": reasoning,
                         "normalized_prediction": Evaluator.normalize(raw_prediction),
                         "acceptable_answers": riddle.acceptable_answers,
                         "is_correct": is_correct,

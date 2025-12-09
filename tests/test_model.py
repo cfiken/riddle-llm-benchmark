@@ -1,8 +1,13 @@
-import pytest
-from unittest.mock import patch, MagicMock
+import json
 from pathlib import Path
-from riddle_benchmark.models.base import Model
+from unittest.mock import MagicMock, patch
+
+import pytest
+
 from riddle_benchmark.dataset.schema import Riddle
+from riddle_benchmark.models.base import Model
+from riddle_benchmark.models.schemas import SimpleResponse
+
 
 @pytest.fixture
 def mock_riddle():
@@ -11,8 +16,9 @@ def mock_riddle():
         image_path=Path("test_image.jpg"),
         question="What is this?",
         acceptable_answers=["test"],
-        hint="It's a test."
+        hint="It's a test.",
     )
+
 
 @patch("riddle_benchmark.models.base.litellm.completion")
 @patch("builtins.open", new_callable=MagicMock)
@@ -24,23 +30,28 @@ def test_model_solve(mock_open, mock_completion, mock_riddle):
 
     # Setup mock for litellm response
     mock_response = MagicMock()
-    mock_response.choices = [MagicMock(message=MagicMock(content="test answer"))]
+    # Content should be a JSON string matching the schema
+    response_content = json.dumps({"answer": "test answer"})
+    mock_response.choices = [MagicMock(message=MagicMock(content=response_content))]
     mock_completion.return_value = mock_response
 
     # Initialize model
     model = Model(model_name="gpt-4o", temperature=0.5)
 
     # Run solve
-    answer = model.solve(mock_riddle)
+    result = model.solve(mock_riddle, SimpleResponse)
 
     # Verify response
-    assert answer == "test answer"
+    assert isinstance(result, SimpleResponse)
+    assert result.answer == "test answer"
 
     # Verify litellm.completion was called correctly
     mock_completion.assert_called_once()
     call_args = mock_completion.call_args
     assert call_args.kwargs["model"] == "gpt-4o"
     assert call_args.kwargs["temperature"] == 0.5
+    # response_format should be passed
+    assert call_args.kwargs["response_format"] == SimpleResponse
 
     messages = call_args.kwargs["messages"]
     assert len(messages) == 1
@@ -56,6 +67,7 @@ def test_model_solve(mock_open, mock_completion, mock_riddle):
     # base64 encoded "fake_image_content" is "ZmFrZV9pbWFnZV9jb250ZW50"
     assert content[1]["image_url"]["url"] == "data:image/jpeg;base64,ZmFrZV9pbWFnZV9jb250ZW50"
 
+
 @patch("riddle_benchmark.models.base.litellm.completion")
 @patch("builtins.open", new_callable=MagicMock)
 def test_model_solve_no_hint(mock_open, mock_completion, mock_riddle):
@@ -68,16 +80,18 @@ def test_model_solve_no_hint(mock_open, mock_completion, mock_riddle):
     mock_open.return_value.__enter__.return_value = mock_file
 
     mock_response = MagicMock()
-    mock_response.choices = [MagicMock(message=MagicMock(content="answer"))]
+    response_content = json.dumps({"answer": "answer"})
+    mock_response.choices = [MagicMock(message=MagicMock(content=response_content))]
     mock_completion.return_value = mock_response
 
     model = Model(model_name="gpt-4o")
-    model.solve(mock_riddle)
+    model.solve(mock_riddle, SimpleResponse)
 
     # Verify messages structure when no hint is present
     messages = mock_completion.call_args.kwargs["messages"]
     content = messages[0]["content"]
     assert "Hint:" not in content[0]["text"]
+
 
 @patch("riddle_benchmark.models.base.litellm.completion")
 @patch("builtins.open", new_callable=MagicMock)
@@ -91,11 +105,12 @@ def test_model_solve_no_question(mock_open, mock_completion, mock_riddle):
     mock_open.return_value.__enter__.return_value = mock_file
 
     mock_response = MagicMock()
-    mock_response.choices = [MagicMock(message=MagicMock(content="answer"))]
+    response_content = json.dumps({"answer": "answer"})
+    mock_response.choices = [MagicMock(message=MagicMock(content=response_content))]
     mock_completion.return_value = mock_response
 
     model = Model(model_name="gpt-4o")
-    model.solve(mock_riddle)
+    model.solve(mock_riddle, SimpleResponse)
 
     # Verify messages structure when no question is present
     messages = mock_completion.call_args.kwargs["messages"]

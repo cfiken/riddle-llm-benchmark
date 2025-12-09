@@ -1,3 +1,4 @@
+import argparse
 import os
 from pathlib import Path
 
@@ -11,19 +12,23 @@ def main() -> None:
     # .env ファイルをロード
     load_dotenv()
 
+    parser = argparse.ArgumentParser(description="Run the Riddle Benchmark.")
+    parser.add_argument("--model", type=str, default="gpt-4o", help="The name of the model to benchmark.")
+    parser.add_argument("--reasoning", action="store_true", help="Include reasoning in the model response.")
+    args = parser.parse_args()
+
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         print("エラー: 環境変数 'OPENAI_API_KEY' が設定されていません。")
         print(".env ファイルに OPENAI_API_KEY を設定するか、環境変数をエクスポートしてください。")
         return
 
-    print("ベンチマークを開始します...")
+    print(f"ベンチマークを開始します... (Model: {args.model}, Reasoning: {args.reasoning})")
 
-    # モデル名は gpt-4o を指定
     # data_dir は assets ディレクトリを指定 (core.pyのヘルパーを利用)
     assets_dir = get_assets_path()
 
-    runner = BenchmarkRunner(model_name="gpt-4o", data_dir=assets_dir)
+    runner = BenchmarkRunner(model_name=args.model, data_dir=assets_dir, use_reasoning=args.reasoning)
 
     try:
         results = runner.run()

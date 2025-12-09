@@ -1,10 +1,13 @@
 import base64
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 import litellm
+from pydantic import BaseModel
 
 from riddle_benchmark.dataset.schema import Riddle
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class Model:
@@ -23,21 +26,31 @@ class Model:
         self.model_name = model_name
         self.kwargs = kwargs
 
-    def solve(self, riddle: Riddle) -> str:
+    def solve(self, riddle: Riddle, response_schema: type[T]) -> T:
         """
         Solve a riddle using the LLM.
 
         Args:
             riddle: The riddle to solve.
+            response_schema: The Pydantic model to use for the response schema.
 
         Returns:
-            The raw string output from the model.
+            The parsed response object (instance of response_schema).
         """
         messages = self._construct_messages(riddle)
 
-        response = litellm.completion(model=self.model_name, messages=messages, **self.kwargs)
+        response = litellm.completion(
+            model=self.model_name,
+            messages=messages,
+            response_format=response_schema,
+            **self.kwargs,
+        )
 
-        return str(response.choices[0].message.content)
+        content = response.choices[0].message.content
+        if content is None:
+            raise ValueError("Model returned empty content")
+
+        return response_schema.model_validate_json(content)
 
     def _construct_messages(self, riddle: Riddle) -> list[dict[str, Any]]:
         """
@@ -56,7 +69,7 @@ class Model:
         content: list[dict[str, Any]] = [
             {
                 "type": "text",
-                "text": f"Question: {question_text}\n\nPlease provide only the answer word, nothing else.",
+                "text": f"Question: {question_text}",
             },
             {
                 "type": "image_url",
