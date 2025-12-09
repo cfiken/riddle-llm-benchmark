@@ -70,6 +70,35 @@ def test_model_solve(mock_open, mock_completion, mock_riddle):
 
 @patch("riddle_benchmark.models.base.litellm.completion")
 @patch("builtins.open", new_callable=MagicMock)
+def test_model_solve_with_prompt(mock_open, mock_completion, mock_riddle):
+    # Setup mocks
+    mock_file = MagicMock()
+    mock_file.read.return_value = b"fake_image_content"
+    mock_open.return_value.__enter__.return_value = mock_file
+
+    mock_response = MagicMock()
+    response_content = json.dumps({"answer": "test answer"})
+    mock_response.choices = [MagicMock(message=MagicMock(content=response_content))]
+    mock_completion.return_value = mock_response
+
+    # Initialize model with prompt
+    prompt = "You are a riddle solver."
+    model = Model(model_name="gpt-4o")
+
+    # Run solve
+    model.solve(mock_riddle, SimpleResponse, prompt=prompt)
+
+    # Verify messages structure
+    messages = mock_completion.call_args.kwargs["messages"]
+    assert len(messages) == 1
+    assert messages[0]["role"] == "user"
+    content = messages[0]["content"]
+    assert prompt in content[0]["text"]
+    assert "Question:" in content[0]["text"]
+
+
+@patch("riddle_benchmark.models.base.litellm.completion")
+@patch("builtins.open", new_callable=MagicMock)
 def test_model_solve_no_hint(mock_open, mock_completion, mock_riddle):
     # Modify riddle to have no hint
     mock_riddle.hint = None
@@ -115,5 +144,10 @@ def test_model_solve_no_question(mock_open, mock_completion, mock_riddle):
     # Verify messages structure when no question is present
     messages = mock_completion.call_args.kwargs["messages"]
     content = messages[0]["content"]
-    # Should use default prompt
-    assert "Question: What does this image represent?" in content[0]["text"]
+
+    # Should contain only image_url if no prompt, no question, no hint (hint is present here though)
+    # But hint IS present in mock_riddle, so text part should exist for Hint
+    text_part = next((item for item in content if item["type"] == "text"), None)
+    assert text_part is not None
+    assert "Question:" not in text_part["text"]
+    assert "Hint: It's a test." in text_part["text"]

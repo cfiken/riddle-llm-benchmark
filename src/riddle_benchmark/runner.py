@@ -21,6 +21,7 @@ class BenchmarkRunner:
         model_name: str,
         data_dir: Path | None = None,
         use_reasoning: bool = False,
+        prompt: str | None = None,
         **model_kwargs: Any,
     ):
         """
@@ -30,10 +31,12 @@ class BenchmarkRunner:
             model_name: Name of the model to benchmark.
             data_dir: Path to the dataset directory.
             use_reasoning: Whether to ask the model for reasoning.
+            prompt: Prompt to use for the model.
             **model_kwargs: Additional arguments for the model.
         """
         self.model_name = model_name
         self.use_reasoning = use_reasoning
+        self.prompt = prompt
         self.model = Model(model_name, **model_kwargs)
         self.loader = DataLoader(data_dir)
         self.results: list[dict[str, Any]] = []
@@ -60,7 +63,7 @@ class BenchmarkRunner:
         for riddle in tqdm(riddles, desc="Solving riddles"):
             try:
                 # Solve
-                prediction_obj = self.model.solve(riddle, response_schema=schema)
+                prediction_obj = self.model.solve(riddle, response_schema=schema, prompt=self.prompt)
 
                 raw_prediction = prediction_obj.answer
                 reasoning = getattr(prediction_obj, "reasoning", None)

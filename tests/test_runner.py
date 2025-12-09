@@ -33,7 +33,7 @@ def test_runner_run(mock_evaluator, mock_model_class, mock_loader_class, mock_ri
     mock_evaluator.normalize.side_effect = lambda x: x  # Identity for test
 
     # Initialize runner
-    runner = BenchmarkRunner(model_name="test-model", temperature=0.7)
+    runner = BenchmarkRunner(model_name="test-model", temperature=0.7, prompt="SysPrompt")
 
     # Run benchmark
     results = runner.run()
