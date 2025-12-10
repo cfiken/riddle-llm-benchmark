@@ -5,12 +5,10 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 import litellm
-from litellm.exceptions import APIError, RateLimitError, ServiceUnavailableError, Timeout
 from pydantic import BaseModel
 from tenacity import (
     before_sleep_log,
     retry,
-    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
 )
@@ -40,14 +38,6 @@ class Model:
         self.kwargs = kwargs
 
     @retry(
-        retry=retry_if_exception_type(
-            (
-                RateLimitError,
-                APIError,
-                Timeout,
-                ServiceUnavailableError,
-            )
-        ),
         stop=stop_after_attempt(3),  # 最大3回
         wait=wait_exponential(multiplier=1, min=1, max=10),  # 指数バックオフ: 1秒、2秒、4秒、最大10秒
         before_sleep=before_sleep_log(logger, logging.WARNING),
