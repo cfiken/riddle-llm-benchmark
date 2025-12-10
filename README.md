@@ -1,48 +1,54 @@
 # Riddle LLM Benchmark
 
-A Python library for benchmarking LLMs on riddle-solving tasks, using [uv](https://github.com/astral-sh/uv).
+日本語の謎解きタスクでLLMの推論能力を評価するベンチマークです。画像ベースの10問の謎解きクイズを使用して、LLMの性能を評価します。
 
-## Features
+## 特徴
 
-- Modern Python packaging with `pyproject.toml`
-- Dependency management with `uv`
-- Docker-based development environment
-- GitHub Actions CI
+- 画像ベースの日本語謎解き問題10問
+- 複数のLLMプロバイダーに対応（OpenAI、Gemini、Bedrock/Claude）
+- 推論プロセスの可視化オプション
+- Dockerベースの環境
 
-## Installation
+## Riddles
 
-```bash
-uv pip install riddle-llm-benchmark
-```
+このベンチマークで使用される10問の謎です。
 
-## Development
+| ID | 画像 | 正解例 |
+|---|---|---|
+| 001 | ![Riddle 001](src/riddle_benchmark/assets/images/001.png) | <details><summary>クリックして表示</summary>えーあい、エーアイ、AI</details> |
+| 002 | ![Riddle 002](src/riddle_benchmark/assets/images/002.png) | <details><summary>クリックして表示</summary>10</details> |
+| 003 | ![Riddle 003](src/riddle_benchmark/assets/images/003.png) | <details><summary>クリックして表示</summary>はがき、ハガキ、葉書</details> |
+| 004 | ![Riddle 004](src/riddle_benchmark/assets/images/004.png) | <details><summary>クリックして表示</summary>いけす、生簀、生け簀</details> |
+| 005 | ![Riddle 005](src/riddle_benchmark/assets/images/005.png) | <details><summary>クリックして表示</summary>いちじく、イチジク</details> |
+| 006 | ![Riddle 006](src/riddle_benchmark/assets/images/006.png) | <details><summary>クリックして表示</summary>W</details> |
+| 007 | ![Riddle 007](src/riddle_benchmark/assets/images/007.png) | <details><summary>クリックして表示</summary>エポックメイキング</details> |
+| 008 | ![Riddle 008](src/riddle_benchmark/assets/images/008.png) | <details><summary>クリックして表示</summary>スクワット</details> |
+| 009 | ![Riddle 009](src/riddle_benchmark/assets/images/009.png) | <details><summary>クリックして表示</summary>□</details> |
+| 010 | ![Riddle 010](src/riddle_benchmark/assets/images/010.png) | <details><summary>クリックして表示</summary>とらうま、トラウマ</details> |
 
-### Requirements
+## 使い方
 
-- Docker
-- uv (optional, for local management)
-
-### Setup
-
-```bash
-# Start the development container
-docker compose up -d
-
-# Run tests inside the container
-docker compose exec dev pytest
-```
-
-### Local Development (without Docker)
+### ローカル
 
 ```bash
-# Install dependencies
+# 依存関係をインストール
 uv sync
 
-# Run tests
-uv run pytest
+# ベンチマークを実行
+uv run python -m riddle_benchmark --model gpt-4o
 ```
 
-## Result (2025/12)
+### Docker
+
+```bash
+# 開発コンテナを起動
+docker compose up -d
+
+# コンテナ内でベンチマークを実行
+docker compose exec dev uv run python -m riddle_benchmark --model gpt-4o
+```
+
+## 結果 (2025/12)
 
 - openai
     - openai/gpt-4o
