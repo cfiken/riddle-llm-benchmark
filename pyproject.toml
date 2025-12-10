@@ -13,6 +13,7 @@ dependencies = [
     "litellm>=1.80.8",
     "pydantic>=2.12.5",
     "python-dotenv>=1.2.1",
+    "tenacity>=9.0.0",
     "tqdm>=4.67.1",
 ]
 

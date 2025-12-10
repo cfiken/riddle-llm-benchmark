@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import json
 from datetime import datetime
 from pathlib import Path
 
@@ -17,17 +18,43 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description="Run the Riddle Benchmark.")
     parser.add_argument("--model", type=str, default="gpt-4o", help="The name of the model to benchmark.")
-    parser.add_argument("--reasoning", action="store_true", help="Include reasoning in the model response.")
+    parser.add_argument("--reason", action="store_true", help="Include reason in the response schema.")
     parser.add_argument(
         "--prompt",
         type=str,
         choices=["0", "1", "2"],
         help="The prompt ID to use (0, 1 or 2). Refers to assets/prompts/{id}.txt. 0 means no prompt.",
     )
+    parser.add_argument(
+        "--extra-params",
+        type=str,
+        help='Additional model-specific parameters as JSON string (e.g., \'{"reasoning_effort": "high"}\').',
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Directory to save the results file. If not specified, saves to the current directory.",
+    )
+
     args = parser.parse_args()
 
+    # Parse extra_params if provided
+    extra_params = None
+    if args.extra_params:
+        try:
+            extra_params = json.loads(args.extra_params)
+            if not isinstance(extra_params, dict):
+                logger.error("--extra-params must be a valid JSON object")
+                return
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in --extra-params: {e}")
+            return
+
     logger.info("ベンチマークを開始します...")
-    logger.info(f"(Model: {args.model}, Reasoning: {args.reasoning}, Prompt: {args.prompt})")
+    logger.info(f"(Model: {args.model}, Reason: {args.reason}, Prompt: {args.prompt})")
+    if extra_params:
+        logger.info(f"Extra params: {extra_params}")
 
     # data_dir は assets ディレクトリを指定 (core.pyのヘルパーを利用)
     assets_dir = get_assets_path()
@@ -44,8 +71,9 @@ def main() -> None:
     runner = BenchmarkRunner(
         model_name=args.model,
         data_dir=assets_dir,
-        use_reasoning=args.reasoning,
+        use_reason=args.reason,
         prompt=prompt,
+        extra_params=extra_params,
     )
 
     try:
@@ -53,7 +81,16 @@ def main() -> None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         # Remove provider prefix if present (e.g. "gemini/gemini-1.5-pro" -> "gemini-1.5-pro")
         model_name_for_file = args.model.split("/")[-1]
-        output_path = Path(f"results_{model_name_for_file}_{timestamp}.json")
+
+        # 出力パスの決定
+        default_filename = f"results_{model_name_for_file}_{timestamp}.json"
+        if args.output_dir:
+            output_dir = Path(args.output_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            output_path = output_dir / default_filename
+        else:
+            output_path = Path(default_filename)
+
         runner.save_report(output_path)
         logger.info(f"完了しました。結果は {output_path} に保存されました。")
 

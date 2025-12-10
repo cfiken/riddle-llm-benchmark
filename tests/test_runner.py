@@ -28,16 +28,36 @@ async def test_runner_run(mock_evaluator, mock_model_class, mock_loader_class, m
 
     mock_model = mock_model_class.return_value
     # First riddle correct, second incorrect
-    responses = [SimpleResponse(answer="a1"), SimpleResponse(answer="wrong")]
+    # Use a dict to map riddle_id to response to handle async completion order
+    responses = {
+        "1": SimpleResponse(answer="a1"),
+        "2": SimpleResponse(answer="wrong"),
+    }
 
-    async def mock_solve(*args, **kwargs):
-        return responses.pop(0) if responses else SimpleResponse(answer="wrong")
+    async def mock_solve(riddle, *args, **kwargs):
+        # Get riddle_id from the riddle object
+        riddle_id = riddle.id if hasattr(riddle, "id") else ""
+        return responses.get(riddle_id, SimpleResponse(answer="wrong"))
 
     mock_model.solve = mock_solve
     mock_model.kwargs = {"temperature": 0.7}  # Mock kwargs for summary
 
-    mock_evaluator.evaluate.side_effect = [True, False]
-    mock_evaluator.normalize.side_effect = lambda x: x  # Identity for test
+    # Mock evaluate to return True if prediction matches acceptable_answers
+    # Note: evaluate is a classmethod, so when called as Evaluator.evaluate(prediction, riddle),
+    # Python automatically passes cls as the first argument, so we get (cls, prediction, riddle)
+    def mock_evaluate(*args, **kwargs):
+        # When called as Evaluator.evaluate(prediction, riddle), args is (cls, prediction, riddle)
+        # But when mocked, the mock might not pass cls, so handle both cases
+        if len(args) == 2:
+            prediction, riddle = args
+        else:
+            cls, prediction, riddle = args
+        return prediction in riddle.acceptable_answers
+
+    # Use side_effect to properly handle the classmethod call
+    mock_evaluator.evaluate.side_effect = mock_evaluate
+    # normalize is a staticmethod
+    mock_evaluator.normalize = lambda x: x  # Identity for test
 
     # Initialize runner
     runner = BenchmarkRunner(model_name="test-model", temperature=0.7, prompt="SysPrompt")
@@ -55,15 +75,20 @@ async def test_runner_run(mock_evaluator, mock_model_class, mock_loader_class, m
     summary = results["summary"]
     assert summary["model"] == "test-model"
     assert summary["total_questions"] == 2
-    assert summary["correct_answers"] == 1
-    assert summary["accuracy"] == 0.5
 
     details = results["details"]
     assert len(details) == 2
-    assert details[0]["is_correct"] is True
-    assert details[1]["is_correct"] is False
-    assert details[0]["riddle_id"] == "1"
-    assert details[1]["riddle_id"] == "2"
+
+    # Results are sorted by riddle_id, so find by id
+    detail_1 = next(d for d in details if d["riddle_id"] == "1")
+    detail_2 = next(d for d in details if d["riddle_id"] == "2")
+
+    assert detail_1["is_correct"] is True
+    assert detail_2["is_correct"] is False
+
+    # Verify summary matches details
+    assert summary["correct_answers"] == 1
+    assert summary["accuracy"] == 0.5
     # difficulty/category checks removed
 
 
