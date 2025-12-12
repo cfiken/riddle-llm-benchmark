@@ -54,8 +54,11 @@ class DataLoader:
             for line in f:
                 if not line.strip():
                     continue
-
-                data = json.loads(line)
+                try:
+                    data = json.loads(line)
+                except json.JSONDecodeError:
+                    print(f"Error decoding JSON: {line}")
+                    continue
 
                 # Handle HF ImageFolder format where image path might be relative to data_dir
                 # "file_name": "images/riddle_001.png" -> we need full path

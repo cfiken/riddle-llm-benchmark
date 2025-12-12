@@ -25,8 +25,12 @@
 | 008 | ![Riddle 008](src/riddle_benchmark/assets/images/008.png) | <details><summary>クリックして表示</summary>スクワット</details> |
 | 009 | ![Riddle 009](src/riddle_benchmark/assets/images/009.png) | <details><summary>クリックして表示</summary>□</details> |
 | 010 | ![Riddle 010](src/riddle_benchmark/assets/images/010.png) | <details><summary>クリックして表示</summary>とらうま、トラウマ</details> |
+| 011 | ![Riddle 011](src/riddle_benchmark/assets/images/011.png) | <details><summary>クリックして表示</summary>かまくら、カマクラ</details> |
+| 012 | ![Riddle 012](src/riddle_benchmark/assets/images/012.png) | <details><summary>クリックして表示</summary>しれいとう、司令塔</details> |
 
 ## 使い方
+
+事前に .env 等で環境変数に各種API_KEYをセットしてください。
 
 ### ローカル
 
@@ -35,7 +39,10 @@
 uv sync
 
 # ベンチマークを実行
-uv run python -m riddle_benchmark --model gpt-4o
+uv run riddle_benchmark --model gpt-4o
+
+# reasoning: high, かつ思考過程出力
+uv run riddle_benchmark --model gpt-4o --reason --extra-params "{\"reasoning_effort\": \"high\"}" --output-dir hoge
 ```
 
 ### Docker
@@ -45,7 +52,10 @@ uv run python -m riddle_benchmark --model gpt-4o
 docker compose up -d
 
 # コンテナ内でベンチマークを実行
-docker compose exec dev uv run python -m riddle_benchmark --model gpt-4o
+docker compose exec dev uv run riddle_benchmark --model gpt-4o
+
+# reasoning: high, かつ思考過程出力
+docker compose ecex dev uv run riddle_benchmark --model gpt-4o --reason --extra-params "{\"reasoning_effort\": \"high\"}" --output-dir hoge
 ```
 
 ## 結果 (2025/12)

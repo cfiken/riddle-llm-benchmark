@@ -23,6 +23,7 @@ def main() -> None:
         "--prompt",
         type=str,
         choices=["0", "1", "2"],
+        default="2",
         help="The prompt ID to use (0, 1 or 2). Refers to assets/prompts/{id}.txt. 0 means no prompt.",
     )
     parser.add_argument(
