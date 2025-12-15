@@ -25,8 +25,8 @@
 | 008 | ![Riddle 008](src/riddle_benchmark/assets/images/008.png) | <details><summary>クリックして表示</summary>スクワット</details> |
 | 009 | ![Riddle 009](src/riddle_benchmark/assets/images/009.png) | <details><summary>クリックして表示</summary>□</details> |
 | 010 | ![Riddle 010](src/riddle_benchmark/assets/images/010.png) | <details><summary>クリックして表示</summary>とらうま、トラウマ</details> |
-| 011 | ![Riddle 011](src/riddle_benchmark/assets/images/011.png) | <details><summary>クリックして表示</summary>かまくら、カマクラ</details> |
-| 012 | ![Riddle 012](src/riddle_benchmark/assets/images/012.png) | <details><summary>クリックして表示</summary>しれいとう、司令塔</details> |
+| 011 | ![Riddle 011](src/riddle_benchmark/assets/images/011.png) | <details><summary>クリックして表示</summary>しれいとう、司令塔</details> |
+| 012 | ![Riddle 012](src/riddle_benchmark/assets/images/012.png) | <details><summary>クリックして表示</summary>かまくら、カマクラ</details> |
 
 ## 使い方
 
